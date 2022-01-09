@@ -188,7 +188,7 @@ def callback(attr, old, new):
     # set the `yr` name to `slider.value` and `source.data = new_data`
     selectedMonth = slider.value
     selectedLocation = loc_select.value
-    selectedData = data_select.labels
+    # selectedData = data_select.labels
     selectedYear = yr_select.value
     # Label axes of plot
     # plot.xaxis.axis_label = loc
@@ -241,12 +241,12 @@ yr_select = Select(
 yr_select.on_change('value', callback)
 
 #Checkbox
-LABELS =["Total_Cases","Total_Deaths","Total_Recovered","Total_Active_Cases"]
-data_select = CheckboxGroup(
-    labels = LABELS,
-    active = [1],
+# LABELS =["Total_Cases","Total_Deaths","Total_Recovered","Total_Active_Cases"]
+# data_select = CheckboxGroup(
+#     labels = LABELS,
+#     active = [1],
 
-)
+# )
 # Attach the update_plot callback to the 'value' property of y_select
 # data_select.on_change('labels', callback)
 
