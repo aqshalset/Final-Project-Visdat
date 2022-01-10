@@ -13,8 +13,8 @@ from bokeh.models import HoverTool, ColumnDataSource, CategoricalColorMapper
 from bokeh.models import Grid, LinearAxis, Plot, VBar
 # from bokeh.palettes import Spectral6
 from bokeh.layouts import widgetbox, row, gridplot
-from bokeh.models import Slider, Select, MultiChoice, CheckboxGroup
-from bokeh.models import CustomJS, Dropdown, DateSlider
+from bokeh.models import Slider, Select, MultiChoice, CheckboxGroup, DatetimeTickFormatter
+from bokeh.models import CustomJS, Dropdown, DateSlider, RangeSlider
 from bokeh.io import output_file
 from datetime import date
 from bokeh.models.callbacks import CustomJS
@@ -176,8 +176,9 @@ df.dtypes
 source = ColumnDataSource(data={
 #     'x':df.loc[df.Location == 'Jawa Barat'].Date,
 #     'y':df.loc[df.Location == 'Jawa Barat'].Total_Deaths,
-    'x'       : df.loc[(df.Location == 'Riau') & (df.month == 12) & (df.year == '2020')].Date,
-    'y'       : df.loc[(df.Location == 'Riau') & (df.month == 12) & (df.year == '2020')].Total_Deaths,    
+    'x'       : df.loc[(df.Location == 'DKI Jakarta') & (df.month == 3) & (df.year == '2020')].Date,
+    'y'       : df.loc[(df.Location == 'DKI Jakarta') & (df.month == 3) & (df.year == '2020')].Total_Deaths,
+    # 'Date': df.loc[(df.Location == 'DKI Jakarta') & (df.month == 3) & (df.year == '2020')].index.format()
 })
 
 
@@ -188,15 +189,16 @@ def callback(attr, old, new):
     # set the `yr` name to `slider.value` and `source.data = new_data`
     selectedMonth = slider.value
     selectedLocation = loc_select.value
-    selectedData = data_select.labels
+    selectedData = data_select.value
     selectedYear = yr_select.value
     # Label axes of plot
     # plot.xaxis.axis_label = loc
-    # plot.yaxis.axis_label = selectedData
+    plot.yaxis.axis_label = selectedData
     # new data
     new_data = {
         'x'       : df.loc[(df.Location == selectedLocation) & (df.month == selectedMonth) & (df.year == selectedYear)].Date,
-        'y'       : df.loc[(df.Location == selectedLocation) & (df.month == selectedMonth) & (df.year == selectedYear)].Total_Deaths,
+        'y'       : df[selectedData].loc[(df.Location == selectedLocation) & (df.month == selectedMonth) & (df.year == selectedYear)],
+        'Data'    : df.loc[(df.Location == 'DKI Jakarta') & (df.month == 3) & (df.year == '2020')].index.format()
     # 'x'       : df.loc[(df.Location == loc) & (df.Date == date)].Date,
     # 'y'       : df.loc[(df.Location == loc) & (df.Date == date)].selectedData,
     # 'location' : df.loc[date].Location,
@@ -212,10 +214,31 @@ def callback(attr, old, new):
 TOOLTIPS = 'box_zoom,save,hover,reset'
 
 
-plot = figure(title='Covid-19 Indonesia', x_axis_label='Date', x_axis_type="datetime", y_axis_label='Total_Deaths',
-           plot_height=400, plot_width=700, tools=TOOLTIPS)
-# plot.xaxis.ticker = FixedTicker(ticks=[10, 20, 37.4])
+
+
+plot = figure(title='Visualisasi Covid-19 per Provinsi', x_axis_label='Date', x_axis_type="datetime", y_axis_label='Total_Deaths',
+           plot_height=400, plot_width=700)
+
 plot.line(x='x', y='y', source=source)
+plot.legend.location = "top_left"
+
+
+
+plot.add_tools(HoverTool(
+    tooltips=[
+        ( 'date','@x{%F}'),
+        ( 'Value', '@y'),
+    ],
+
+    formatters={
+        '@x'      : 'datetime', # use 'datetime' formatter for 'date' field
+    },
+
+    # display a tooltip whenever the cursor is vertically in line with a glyph
+    mode='vline'
+))
+
+
 
 
 #Slider
@@ -227,7 +250,7 @@ slider.on_change('value',callback)
 #Dropdown
 loc_select = Select(
     options= list(df.Location.unique()),
-    value='Riau',
+    value='DKI Jakarta',
     title='Provinsi'
 )
 # Attach the update_plot callback to the 'value' property of x_select
@@ -240,90 +263,18 @@ yr_select = Select(
 )
 yr_select.on_change('value', callback)
 
-#Checkbox
-LABELS =["Total_Cases","Total_Deaths","Total_Recovered","Total_Active_Cases"]
-data_select = CheckboxGroup(
-    labels = LABELS,
-    active = [1],
 
+data_select = Select(
+    options= ["Total_Cases","Total_Deaths","Total_Recovered","Total_Active_Cases"],
+    value='Total_Deaths',
+    title='Data Covid-19'
 )
-# Attach the update_plot callback to the 'value' property of y_select
-# data_select.on_change('labels', callback)
+data_select.on_change('value', callback)
+
+
 
 layout = row(widgetbox(yr_select,slider,loc_select,data_select), plot)
 curdoc().add_root(layout)
+curdoc().title = 'Visualisasi Covid-19 per Provinsi'
 
 show(layout)
-
-
-# In[25]:
-
-
-# bokeh serve --show myapp.py
-
-
-# In[ ]:
-
-
-# # Create the figure: plot
-# plot = figure(title='1970', x_axis_label='Fertility (children per woman)', y_axis_label='Life Expectancy (years)',
-#            plot_height=400, plot_width=700, tools=[HoverTool(tooltips='@country')])
-
-# # Add a circle glyph to the figure p
-# plot.circle(x='x', y='y', source=source, fill_alpha=0.8,
-#            color=dict(field='region', transform=color_mapper), legend='region')
-
-# # Set the legend and axis attributes
-# plot.legend.location = 'bottom_left'
-
-# # Define the callback function: update_plot
-# def update_plot(attr, old, new):
-#     # set the `yr` name to `slider.value` and `source.data = new_data`
-#     yr = slider.value
-#     x = x_select.value
-#     y = y_select.value
-#     # Label axes of plot
-#     plot.xaxis.axis_label = x
-#     plot.yaxis.axis_label = y
-#     # new data
-#     new_data = {
-#     'x'       : data.loc[yr][x],
-#     'y'       : data.loc[yr][y],
-#     'country' : data.loc[yr].Country,
-#     'pop'     : (data.loc[yr].population / 20000000) + 2,
-#     'region'  : data.loc[yr].region,
-#     }
-#     source.data = new_data
-    
-#     # Add title to figure: plot.title.text
-#     plot.title.text = 'Gapminder data for %d' % yr
-
-# # Make a slider object: slider
-# slider = Slider(start=1970, end=2010, step=1, value=1970, title='Year')
-# slider.on_change('value',update_plot)
-
-# # Make dropdown menu for x and y axis
-# # Create a dropdown Select widget for the x data: x_select
-# x_select = Select(
-#     options=['fertility', 'life', 'child_mortality', 'gdp'],
-#     value='fertility',
-#     title='x-axis data'
-# )
-# # Attach the update_plot callback to the 'value' property of x_select
-# x_select.on_change('value', update_plot)
-
-# # Create a dropdown Select widget for the y data: y_select
-# y_select = Select(
-#     options=['fertility', 'life', 'child_mortality', 'gdp'],
-#     value='life',
-#     title='y-axis data'
-# )
-# # Attach the update_plot callback to the 'value' property of y_select
-# y_select.on_change('value', update_plot)
-    
-# # Create layout and add to current document
-# layout = row(widgetbox(slider, x_select, y_select), plot)
-# curdoc().add_root(layout)
-
-# show(layout)
-
